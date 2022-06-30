@@ -1,5 +1,8 @@
 """
-XYZ
+Object based Frameworks for bank accounts
+    Acount -> Abstract Class
+    Savings & Current -> Children classes of Account
+    FixedDeposit -> Independent Class
 """
 
 from abc import ABC, abstractmethod
@@ -9,6 +12,8 @@ from os import remove
 
 
 class Account(ABC):
+    """An abstract class which partially imitates bank accounts"""
+
     bank_name = "Void"
 
     def __init__(self, name, passwd, balance):
@@ -20,16 +25,22 @@ class Account(ABC):
         self.__passwd = passwd
         self.created_on = time()
 
+    def __repr__(self):
+        return f"Account({self.name})"
+
     @property
     def name(self):
+        """Returns the value of private attribute 'name'"""
         return self.__name
 
     @property
     def balance(self):
+        """Returns the value of private attribute 'balance'"""
         return self.__balance
 
     @property
     def passwd(self):
+        """Makes the private attribute 'passwd' inaccessible by returning 'None'"""
         return None
 
     @name.setter
@@ -51,11 +62,20 @@ class Account(ABC):
 
     @staticmethod
     def save(acc_obj):
+        """A Function to save the account object to a '.pkl' file for
+        data persistency
+
+        It is a staticmethod so it can accesed without instantiating"""
         with open(f"{acc_obj.name}.pkl", "wb") as file:
             dump(acc_obj, file, -1)
 
     @staticmethod
     def load(acc_name, password):
+        """A Function which the account object from a '.pkl' file
+        passwd -> To check if the request is from the owner of
+        this object
+
+        It is a staticmethod so it can accesed without instantiating"""
         try:
             with open(f"{acc_name}.pkl", "rb") as file:
                 tmp = load(file)
@@ -63,48 +83,65 @@ class Account(ABC):
                 return tmp
             raise Exception("Wrong Password!")
         except FileNotFoundError:
-            raise FileNotFoundError(
-                "Looks like we can't find a account with that name!"
-            )
+            return None
 
     @abstractmethod
     def withdraw(self, amount):
+        """
+        A method to withdraw a sum from the account
+            amount -> The sum which is to be withdrawn
+
+        It is an abstractclass to apply limits on the 'amount' in the
+        children classes"""
         assert amount > 0, "Can't withdraw a zero/-ve sum"
 
         self.__balance -= amount
 
     @abstractmethod
     def deposit(self, amount):
+        """
+        A method to deposit a sum from the account
+            amount -> The sum which is to be deposited
+
+        It is an abstractclass to apply limits on the 'amount' in the
+        children classes"""
         assert amount > 0, "Can't deposit a zero/-ve sum"
 
         self.__balance += amount
 
-    @abstractmethod
-    def apply_interest(self):
-        if (time() - self.created_on) >= 31536000:
-            self.__balance = self.__balance + (self.__balance * 0)
-
     def transfer(self, amount, receiver):
+        """A method to transfer money internally without any limits
+        amount -> The sum to be transfered
+        receiver -> Receiver's account object"""
         assert amount > 0, "Can't tranfer a -ve/zero sum"
 
         self.__balance -= amount
         receiver.receive_sum(amount)
 
     def receive_sum(self, amount):
+        """A method to receive money internally without any limits
+        amount -> The sum to be received"""
         self.__balance += amount
 
     def check_passwd(self, password):
+        """A method to compare the private attribute 'passwd' to given
+        arugement 'password'."""
         if self.__passwd == password:
             return True
         return False
 
-    def break_fd(self, FD):
-        amount = FD.balance + (FD.balance * 0.09)
+    def break_fd(self, fixed_deposit):
+        """A method to break FD and add it to the instantiated object with
+        interest"""
+        amount = fixed_deposit.balance + (fixed_deposit.balance * 0.09)
         self.__balance += amount
-        remove(f"{FD.name}.pkl")
+        remove(f"{fixed_deposit.name}.pkl")
 
 
 class SavingsAccount(Account):
+    """A children class of Account to encapsulate the amount which
+    can be deposited/withdrawn"""
+
     type = "Savings"
 
     def withdraw(self, amount):
@@ -119,12 +156,11 @@ class SavingsAccount(Account):
 
         self.__balance += amount
 
-    def apply_interest(self):
-        if (time() - self.created_on) >= 31536000:
-            self.__balance = self.__balance + (self.__balance * 0.07)
-
 
 class CurrentAccount(Account):
+    """A children class of Account which has limits set on transaction
+    according to the rules which are currently followed"""
+
     type = "Current"
 
     def withdraw(self, amount):
@@ -137,12 +173,11 @@ class CurrentAccount(Account):
 
         self.__balance += amount
 
-    def apply_interest(self):
-        if (time() - self.created_on) >= 31536000:
-            self.__balance = self.__balance + (self.__balance * 0.05)
-
 
 class FixedDeposit:
+    """An object to imitate the Fixed Deposit present in the
+    banking system"""
+
     def __init__(self, name, passwd, balance, time_period):
         assert balance > 0, "Can't create a FD with zero/-ve sum"
         assert len(passwd) >= 8, "Please type a password of 8 or more characters"
@@ -155,14 +190,17 @@ class FixedDeposit:
 
     @property
     def name(self):
+        """Returns the value of private attribute 'name'"""
         return self.__name
 
     @property
     def balance(self):
+        """Returns the value of private attribute 'balance'"""
         return self.__balance
 
     @property
     def passwd(self):
+        """Makes the private attribute 'passwd' inaccessible by returning 'None'"""
         return None
 
     @name.setter
@@ -183,6 +221,8 @@ class FixedDeposit:
         pass
 
     def check_maturity(self):
+        """A method to check if the Time period of the FD has crossed its
+        maturation date"""
         curr_time = time()
         if curr_time - self.created_on >= self.time_period:
             return True
